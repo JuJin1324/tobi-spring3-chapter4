@@ -12,7 +12,7 @@
         <property name="username" value="scott" />
         <property name="password" value="tiger" />
     </bean>
-    <bean id="userDao" class="study.tobi.spring3.chapter4.user.dao.UserDao">
+    <bean id="userDao" class="study.tobi.spring3.chapter4.user.dao.UserDaoJdbc">
         <property name="dataSource" ref="dataSource" />
     </bean>
 

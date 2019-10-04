@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import study.tobi.spring3.chapter4.user.dao.UserDaoJdbc;
 import study.tobi.spring3.chapter4.user.dao.UserDao;
 
 import java.util.HashSet;
@@ -67,14 +68,14 @@ public class JUnitTest {
     @Test
     public void compareAutowiredToGetBean() {
 
-        UserDao getBeanDao = context.getBean("userDao", UserDao.class);
+        UserDao getBeanDao = context.getBean("userDao", UserDaoJdbc.class);
         assertThat(getBeanDao, is(autowiredDao));
     }
 
     @Test(expected = NoSuchBeanDefinitionException.class)
     public void confirmUndefinedBean() {
 
-        UserDao dao = context.getBean("undefined", UserDao.class);
+        UserDao dao = context.getBean("undefined", UserDaoJdbc.class);
     }
 
     @Test

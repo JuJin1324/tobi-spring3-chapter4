@@ -11,14 +11,14 @@ import org.springframework.context.annotation.Configuration;
 public class CountingDaoFactory {
 
     /*
-     * UserDao 클래스에서
+     * UserDaoJdbc 클래스에서
      * ConnectionMaker -> DataSource
      * 변경으로 인해 더이상 사용 안함.
      */
 
 //    @Bean
-//    public UserDao userDao() {
-//        UserDao userDao = new UserDao();
+//    public UserDaoJdbc userDao() {
+//        UserDaoJdbc userDao = new UserDaoJdbc();
 //        userDao.setConnectionMaker(connectionMaker());
 //
 //        return userDao;
