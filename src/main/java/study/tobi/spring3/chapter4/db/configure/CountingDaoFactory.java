@@ -1,4 +1,4 @@
-package study.tobi.spring3.chapter4.user.dao;
+package study.tobi.spring3.chapter4.db.configure;
 
 import org.springframework.context.annotation.Configuration;
 
@@ -11,14 +11,14 @@ import org.springframework.context.annotation.Configuration;
 public class CountingDaoFactory {
 
     /*
-     * UserDaoJdbc 클래스에서
+     * UserDao 클래스에서
      * ConnectionMaker -> DataSource
      * 변경으로 인해 더이상 사용 안함.
      */
 
 //    @Bean
-//    public UserDaoJdbc userDao() {
-//        UserDaoJdbc userDao = new UserDaoJdbc();
+//    public UserDao userDao() {
+//        UserDao userDao = new UserDao();
 //        userDao.setConnectionMaker(connectionMaker());
 //
 //        return userDao;

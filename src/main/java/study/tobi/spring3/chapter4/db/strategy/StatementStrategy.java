@@ -1,4 +1,4 @@
-package study.tobi.spring3.chapter4.user.dao;
+package study.tobi.spring3.chapter4.db.strategy;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

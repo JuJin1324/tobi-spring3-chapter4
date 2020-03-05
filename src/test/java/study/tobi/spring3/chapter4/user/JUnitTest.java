@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import study.tobi.spring3.chapter4.user.dao.UserDaoJdbc;
-import study.tobi.spring3.chapter4.user.dao.UserDao;
+import study.tobi.spring3.chapter4.db.access.UserDao;
+import study.tobi.spring3.chapter4.user.configure.JUnitTestFactory;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -16,7 +16,6 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.internal.matchers.IsCollectionContaining.hasItem;
 import static org.junit.matchers.JUnitMatchers.either;
 
 /**
@@ -25,7 +24,7 @@ import static org.junit.matchers.JUnitMatchers.either;
  */
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = "/junit.xml")
+@ContextConfiguration(classes = JUnitTestFactory.class)
 public class JUnitTest {
     @Autowired
     ApplicationContext context;
@@ -33,7 +32,7 @@ public class JUnitTest {
     @Autowired
     UserDao autowiredDao;
 
-    static Set<JUnitTest> testObjects = new HashSet<>();
+    static Set<JUnitTest>     testObjects = new HashSet<>();
     static ApplicationContext contextObject;
 
     static UserDao daoObject;
@@ -68,24 +67,24 @@ public class JUnitTest {
     @Test
     public void compareAutowiredToGetBean() {
 
-        UserDao getBeanDao = context.getBean("userDao", UserDaoJdbc.class);
+        UserDao getBeanDao = context.getBean("userDao", UserDao.class);
         assertThat(getBeanDao, is(autowiredDao));
     }
 
     @Test(expected = NoSuchBeanDefinitionException.class)
     public void confirmUndefinedBean() {
 
-        UserDao dao = context.getBean("undefined", UserDaoJdbc.class);
+        UserDao dao = context.getBean("undefined", UserDao.class);
     }
 
     @Test
     public void verifyOnlyOneDaoObjectCreated1() {
-        assertThat(daoObject, either(is(nullValue())).or(is(autowiredDao)));
+        assertTrue(daoObject == null || daoObject == autowiredDao);
         daoObject = autowiredDao;
     }
     @Test
     public void verifyOnlyOneDaoObjectCreated2() {
-        assertThat(daoObject, either(is(nullValue())).or(is(autowiredDao)));
+        assertTrue(daoObject == null || daoObject == autowiredDao);
         daoObject = autowiredDao;
     }
 }

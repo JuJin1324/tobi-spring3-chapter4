@@ -131,3 +131,12 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+/.idea/.gitignore
+/.idea/chapter4.iml
+/.idea/compiler.xml
+/.idea/dataSources.xml
+/.idea/encodings.xml
+/.idea/jarRepositories.xml
+/.idea/json2java.xml
+/.idea/misc.xml
+/.idea/vcs.xml

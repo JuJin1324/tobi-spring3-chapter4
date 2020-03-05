@@ -1,4 +1,4 @@
-package study.tobi.spring3.chapter4.user.entity;
+package study.tobi.spring3.chapter4.db.entity;
 
 import lombok.*;
 

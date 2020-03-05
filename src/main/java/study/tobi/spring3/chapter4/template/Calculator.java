@@ -26,34 +26,12 @@ public class Calculator {
 //                return sum;
 //            }
 //        });
-        return lineReadTemplate(filepath, new LineCallback<Integer>() {
-            @Override
-            public Integer doSomethingWithLine(String line, Integer value) {
-                return value + Integer.valueOf(line);
-            }
-        }, 0);
+        return lineReadTemplate(filepath, (line, value) -> value + Integer.parseInt(line), 0);
     }
 
     /* 클라이언트 */
     public Integer calcMultiply(String filepath) throws IOException {
-//        return fileReadTemplate(filepath, new BufferedReaderCallback() {
-//            @Override
-//            public Integer doSomethingWithReader(BufferedReader br) throws IOException {
-//                Integer multiple = 1;
-//                String line;
-//                while ((line = br.readLine()) != null) {
-//                    multiple *= Integer.valueOf(line);
-//                }
-//                return multiple;
-//            }
-//        });
-
-        return lineReadTemplate(filepath, new LineCallback<Integer>() {
-            @Override
-            public Integer doSomethingWithLine(String line, Integer value) {
-                return value * Integer.valueOf(line);
-            }
-        }, 1);
+        return lineReadTemplate(filepath, (line, value) -> value * Integer.parseInt(line), 1);
     }
 
     /* 템플릿(=컨텍스트) 메서드 분리 */
@@ -105,11 +83,6 @@ public class Calculator {
     }
 
     public String concatenate(String filepath) throws IOException {
-        return lineReadTemplate(filepath, new LineCallback<String>() {
-            @Override
-            public String doSomethingWithLine(String line, String value) {
-                return value + line;
-            }
-        }, "");
+        return lineReadTemplate(filepath, (line, value) -> value + line, "");
     }
 }

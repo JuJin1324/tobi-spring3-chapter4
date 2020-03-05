@@ -1,18 +1,16 @@
-package study.tobi.spring3.chapter4.user.dao;
+package study.tobi.spring3.chapter4.user.access;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
-import org.springframework.jdbc.support.SQLExceptionTranslator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import study.tobi.spring3.chapter4.user.entity.User;
+import study.tobi.spring3.chapter4.db.access.UserDao;
+import study.tobi.spring3.chapter4.db.entity.User;
+import study.tobi.spring3.chapter4.user.configure.TestDaoFactory;
 
-import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -25,13 +23,11 @@ import static org.junit.Assert.assertThat;
  */
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = "/test-applicationContext.xml")
+@ContextConfiguration(classes = TestDaoFactory.class)
 public class UserDaoTest {
 
     @Autowired
-    private UserDao    dao;
-    @Autowired
-    private DataSource dataSource;
+    private UserDao dao;
 
     private User user1;
     private User user2;
@@ -46,7 +42,7 @@ public class UserDaoTest {
     }
 
     @Test
-    public void addAndGet() {
+    public void addAndGet() throws SQLException {
 
         dao.deleteAll();
         assertThat(dao.getCount(), is(0));
@@ -65,7 +61,7 @@ public class UserDaoTest {
     }
 
     @Test
-    public void count() {
+    public void count() throws SQLException {
 
         dao.deleteAll();
         assertThat(dao.getCount(), is(0));
@@ -90,7 +86,7 @@ public class UserDaoTest {
     }
 
     @Test
-    public void getAllTest() {
+    public void getAllTest() throws SQLException {
         dao.deleteAll();
 
         List<User> users0 = dao.getAll();
@@ -119,29 +115,5 @@ public class UserDaoTest {
         assertThat(user1.getId(), is(user2.getId()));
         assertThat(user1.getName(), is(user2.getName()));
         assertThat(user1.getPassword(), is(user2.getPassword()));
-    }
-
-    //    @Test(expected = DataAccessException.class)
-    @Test(expected = DuplicateKeyException.class)
-    public void duplicateKey() {
-        dao.deleteAll();
-
-        dao.add(user1);
-        dao.add(user1);
-    }
-
-    @Test
-    public void sqlExceptionTranslate() {
-        dao.deleteAll();
-
-        try {
-            dao.add(user1);
-            dao.add(user1);
-        } catch (DuplicateKeyException ex) {
-            SQLException sqlEx = (SQLException) ex.getRootCause();  // ex.getRootCause() :  처음 발생한 SQLException 반환
-            SQLExceptionTranslator set = new SQLErrorCodeSQLExceptionTranslator(this.dataSource);
-
-            assertThat(set.translate(null, null, sqlEx), is(DuplicateKeyException.class));
-        }
     }
 }

@@ -1,4 +1,4 @@
-package study.tobi.spring3.chapter4.user.dao;
+package study.tobi.spring3.chapter4.db.access;
 
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,7 +12,7 @@ import javax.sql.DataSource;
 
 @NoArgsConstructor
 @Setter
-public class AccountDao {
+public class MessageDao {
 
     private DataSource dataSource;
 }
