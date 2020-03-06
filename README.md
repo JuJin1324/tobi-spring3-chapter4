@@ -119,7 +119,7 @@ while (maxRetry-- > 0) {
 throw new RetryFailedException();   // 최대 재시도 횟수를 넘기면 직접 예외 발생
 ```
 
-<b>예외 처리 회피</b>
+<b>예외 처리 회피</b>   
 두 번째 방법은 예외처리를 자신이 담당하지 않고 자신을 호출한 쪽으로 던져버리는 것이다.   
 catch 문에서 로그만 남기고 다시 예외를 던지는 방식
 
@@ -155,7 +155,8 @@ JdbcContext 나 JdbcTemplate 이 사용하는 콜백 오브젝트는 ResultSet �
 하지만 예외 회피와는 달리, 발생한 예외를 그대로 넘기는 것이 아니라 <b>적절한 예외로 전환해서</b> 던진다.
 
 예외 전환은 보통 두 가지 목적으로 사용된다.
-* 첫번째로 내부에서 발생한 예외를 그대로 던지는 것이 그 예외상황에 대한 적절한 의미를 부여해주지 못하는 경우에, <b>의미를 분명하게 해줄 수 있는 예외</b>로 바꿔주기 위해서이다.   
+
+첫번째로 내부에서 발생한 예외를 그대로 던지는 것이 그 예외상황에 대한 적절한 의미를 부여해주지 못하는 경우에, <b>의미를 분명하게 해줄 수 있는 예외</b>로 바꿔주기 위해서이다.   
 예를 들어 새로운 사용자를 등록하려고 시도했을 때 아이디가 같은 사용자가 있어서 DB에러 발생시에 JDBC API는 SQLException을 발생시킨다. 
 이 경우 DAO 메서드가 SQLException을 그대로 밖으로 던지면, DAO를 이용해 사용자를 추가하려한 서비스 계층에서는 왜 SQLException이 발생했는지 쉽게 알 방법이 없다. 
 로그인 아이디 중복 같은 경우는 충분히 예상 가능하고 복구 가능한 예외상황이다. 이럴 땐 DAO에서 SQLException의 정보를 해석해서 
@@ -179,7 +180,6 @@ class UserDao {
     }
 }
 ```
-
 보통 전환하는 예외에 원래 발생한 예외를 담아서 중첩 예외로 만드는 것이 좋다. 중첩 예외는 <b>getCause()</b> 메서드를 이용해서 처음 발생한 예외가 무엇인지 확인할 수 있다.   
 
 중첩 예외 1)
@@ -346,5 +346,72 @@ JDBC는 자바를 이용해 DB에 접근하는 방법을 추상화된 API 형태
 현실적으로 DB를 자유롭게 바꾸어 사용할 수 있는 DB 프로그램을 작성하는 데는 두 가지 걸림돌이 존재한다.
 
 <b>비표준 SQL</b>   
+SQL은 어느정도 표준화된 언어이지만 대부분의 DB는 표준을 따르지 않는 비표준 문법과 기능도 제공한다. 
+해당 DB의 특별한 기능을 사용하거나 최적화된 SQL을 만들 때 유용하기 때문이다.
 
- 
+이렇게 작성된 비표준 SQL은 결국 DAO 코드에 들어가고, 해당 DAO는 특정 DB에 종속적인 코드가 되고 만다. 
+보통은 DB가 자주 변경되지도 않고, 사용하는 DB에 최적화하는 것이 중요하므로 비표준 SQL을 거리낌없이 사용한다. 
+하지만 DB의 변경 가능성을 고려해서 유연하게 만들어야 한다면 SQL은 제법 큰 걸림돌이 된다.
+
+<b>호환성 없는 SQLException의 DB 에러정보</b>
+DB를 사용하다 발생할 수 있는 예외의 원인은 다양하다. SQL 문법 오류도 있고, DB 커넥션을 가져오지 못했을 수도 있으며, 테이블이나 필드가 존재하지 않거나,
+키가 중복되거나 다양한 제약조건을 위배하는 시도를 한 경우, 데드락에 걸렸거나 락을 얻지 못했을 경우 등 수백여 가지에 이른다.
+
+문제는 DB마다 SQL만 다른 것이 아니라 에러의 종류와 원인도 제각각이라는 점이다. 그래서 JDBC는 데이터 처리 중에 발생하는 다양한 예외를 그냥 SQLException 
+하나에 모두 담아버린다. JDBC API는 이 SQLException 한 가지만 던지도록 설계되어 있다. 예외가 발생한 원인은 SQLException 안에 담긴 에로 코드와 SQL 상태정보를
+참조해봐야 한다.
+
+그런데 SQLException의 getErrorCode() 로 가져올 수 있는 DB 에러 코드는 DB별로 모두 다르다. 
+ExceptionHandleUserDao 클래스의 add() 메서드에서 키 중복 예외가 발생하는 경우를 확인하기 위해 다음과 같은 방법을 사용했었다.
+```java
+if (e.getErrorCode() == MysqlErrorNumbers.ER_DUP_ENTRY)
+``` 
+그런데 여기서 사용한 에러 코드는 MySQL 전용 코드일 뿐이다. DB가 오라클이나 SQLServer로 바뀐다면 에러 코드도 달라지므로 이 코드는 기대한 대로 
+동작하지 않는다.
+
+그래서 SQLException은 예외가 발생했을 때의 DB 상태를 담은 SQL 상태정보를 부가적으로 제공한다. getSQLState() 메서드로 예외상황에 대한 상태정보를 
+가져올 수 있다. 이 상태정보는 DB 별로 달라지는 에러 코드를 대신할 수 있도록 DB 독립적인 표준 상태 코드가 정의되어 있다.
+
+SQLException이 이러한 상태 코드를 제공하는 이유는 DB에 독립적인 에러정보를 얻기 위해서이다. 하지만 DB의 JDBC 드라이버에서 SQLException을 담을 상태 코드를
+정확하게 만들어주지 않기 때문에 이 SQL 상태 코드를 믿고 결과를 파악하도록 코드를 작성하는 것은 위험하다.
+
+결국 SQLException 만으로 DB에 독립적인 유연한 코드를 작성하는 건 불가능하다.
+
+### 4.2.2 DB 에러 코드 매핑을 통한 전환
+스프링은 DataAccessException 이라는 SQLException을 대체할 수 있는 런타임 예외를 정의하고 있을 뿐 아니라 DataAccessException 의 서브클래스로
+세분화된 예외 클래스들을 정의하고 있다.
+* 문법 오류 -> BadSqlGrammarException
+* DB 커넥션 오류 -> DataAccessResourceFailureException
+등등
+
+스프링은 각 DB 별 에러 코드를 분류해서 스프링이 정의한 예외 클래스와 매핑해놓은 에러 코드 매핑정보 테이블을 만들어두고 이를 이용한다.
+JdbcTemplate 은 SQLException을 단지 런타임 예외인 DataAccessException 으로 포장하는 것이 아니라 드라이버나 DB 메타정보를 참조해서
+DB 종류를 확인하고 DB별로 미리 준비된 매핑정보를 참조해서 DB 에러 코드를 DataAccessException의 적절한 서브클래스로 포장한다.
+
+따라서 JdbcTemplate 사용시에 예외 포장을 위한 코드가 따로 필요 없다.
+add() 메서드를 사용하는 쪽에서 중복 키 상황에 대한 대응이 필요한 경우에 참고할 수 있도록 DuplicateKeyException 을 메서드 선언에 넣어주자.
+```java
+public void add(final User user) throws DuplicateKeyException {
+    jdbcTemplate.update("insert into users(id, name, password) values (?, ?, ?)",
+            user.getId(), user.getName(), user.getPassword());
+}
+```
+
+JdbcTemplate을 이용한다면 JDBC에서 발생하는 DB 관련 예외는 거의 신경 쓰지 않아도 된다.
+
+그런데 모종의 이유로 중복키 에러가 발생했을 때 직접 정의한 체크 예외를 발생시키고 싶다면 다음과 같지 예외를 전환하는 코드를 넣어준다.
+```java
+public void add(final User user) throws DuplicateUserIdException {  /* 체크 예외 */
+    try {
+        jdbcTemplate.update("insert into users(id, name, password) values (?, ?, ?)",
+                user.getId(), user.getName(), user.getPassword());
+    } catch (DuplicateKeyException e) {
+        /* 로그를 남기는 등의 필요한 작업 */
+        throw new DuplicateUserIdException(e);     /* 예외 전환 시에는 원인이 되는 예외를 중첩하는 것이 좋다. */
+    }
+}
+```
+
+JDK 1.6 에 포함된 JDBC 4.0 부터는 SQLException을 좀 더 세분화했다고하며 현재 Java 8 ~ Java 12 부터는 어느정도 신뢰도가 생기지 않았을까 추측해본다.
+
+### 4.2.3 DAO 인터페이스와 DataAccessException 계층구조

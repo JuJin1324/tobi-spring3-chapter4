@@ -2,9 +2,12 @@ package study.tobi.spring3.chapter4.db.access;
 
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import study.tobi.spring3.chapter4.db.entity.User;
+import study.tobi.spring3.chapter4.exception.DuplicateUserIdException;
 
 import java.util.List;
 
@@ -31,10 +34,20 @@ public class UserDao {
         jdbcTemplate.update("delete from users");
     }
 
-    public void add(final User user) {
+    public void add(final User user) throws DuplicateKeyException {
         jdbcTemplate.update("insert into users(id, name, password) values (?, ?, ?)",
                 user.getId(), user.getName(), user.getPassword());
     }
+
+//    public void add(final User user) throws DuplicateUserIdException {
+//        try {
+//            jdbcTemplate.update("insert into users(id, name, password) values (?, ?, ?)",
+//                    user.getId(), user.getName(), user.getPassword());
+//        } catch (DuplicateKeyException e) {
+//            throw new DuplicateUserIdException(e);
+//        }
+//    }
+
 
     public int getCount() {
         return jdbcTemplate.queryForObject("select count(*) from users", Integer.class);
