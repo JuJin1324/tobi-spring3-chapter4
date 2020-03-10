@@ -6,6 +6,10 @@
 
 ## 4.1 사라진 SQLException
 jdbcContext 의 쿼리 메서드에서 <b>jdbcTemplate</b> 쿼리 메서드를 사용하면서 <b>throws SQLException</b> 제거하였음.
+```java
+public User get(String id) throws SQLException; -> public User get(String id);
+public void deleteAll() throws SQLException -> public void deleteAll()
+```
 
 ### 4.1.1 초난감 예외처리
 ```java
@@ -80,7 +84,7 @@ Exception 클래스는 <b>체크 예외(checked exception)</b>과 <b>언체크 �
  
 * 체크 예외(checked exception)   
 <b>RuntimeException</b> 클래스를 상속하지 <b>않은</b> 것들.   
-체크 예외가 발생할 수 있는 메서드를 사용할 경우 반드시 예외를 처리하는 코드를 함께 작성해야 한다. 그렇지 않으면 컴파일 에러가 발생한다.
+체크 예외가 발생할 수 있는 메서드를 사용할 경우 반드시 예외를 처리하는 코드(try-catch-finally 혹은 method throws Exception)를 함께 작성해야 한다. 그렇지 않으면 컴파일 에러가 발생한다.
 
 * 언체크 예외(unchecked exception)   
 <b>RuntimeException</b> 클래스를 <b>상속한</b> 클래스들.   
@@ -102,7 +106,7 @@ Error 와 마찬가지로 catch 문으로 잡거나 throws로 선언하지 않�
 단, IOException 에러 메시지가 사용자에게 그냥 던져지는 것은 예외 복구라고 볼 수 없다. 예외가 처리됐으면 비록 기능적으로는 사용자에게 예외상황으로 비쳐지더라도
 애플리케이션에서는 정상적으로 설계된 흐름을 따라 진행돼야 한다.
 
-예외처리 코드를 강제하는 체크 예외들은 이렇게 `예외를 어떤 식으로든 복구할 가능성이 있는 경우`에 사용한다.   
+예외처리 코드를 강제하는 체크 예외들은 이렇게 <b>예외를 어떤 식으로든 복구할 가능성이 있는 경우</b>에 사용한다.   
 다음은 통제 불가능한 외부 요인으로 인해 예외가 발생하면 MAX_RETRY만큼 재시도를 하는 예이다.
 ```java
 int maxRetry = MAX_RETRY;
@@ -218,7 +222,7 @@ class UserDao {
 
 <b>add() 메서드의 예외처리</b>   
 add() 메서드는 DuplicateKeyException과 SQLException 두 가지의 체크 예외를 던지게 되어 있다. JDBC 코드에서 발생할 수 있는 SQLException 에서,
-예외 발생 원인이 ID 중복이면 좀 더 의미 있는 예외인 DuplicateKeyException으로 전환해주고, 아리면 SQLException 을 그대로 던지게 했다.  
+예외 발생 원인이 ID 중복이면 좀 더 의미 있는 예외인 DuplicateKeyException으로 전환해주고, 아니면 SQLException 을 그대로 던지게 했다.  
 <b>DuplicateKeyException</b>는 충분히 복구 가능한 예외이므로 add() 메서드를 사용하는 쪽에서 잡아서 대응할 수 있다.  
 
 하지만 <b>SQLException</b>은 대부분 복구 불가능한 예외이므로 잡아봤자 처리할 것도 없고, 결국 throws를 타고 계속 앞으로 전달되다가 애플리케이션 밖으로 던져질 것이다.   
@@ -415,3 +419,73 @@ public void add(final User user) throws DuplicateUserIdException {  /* 체크 �
 JDK 1.6 에 포함된 JDBC 4.0 부터는 SQLException을 좀 더 세분화했다고하며 현재 Java 8 ~ Java 12 부터는 어느정도 신뢰도가 생기지 않았을까 추측해본다.
 
 ### 4.2.3 DAO 인터페이스와 DataAccessException 계층구조
+DataAccessException 은 JDBC 외의 자바 데이터 액세스 기술에서 발생하는 예외에도 적용된다. 
+* 자바 데이터 액세스 기술 : JDBC, JDO, JPA, 오라클의 TopLink, Hibernate, iBatis
+
+DataAccessException 은 의미가 같은 예외라면 데이터 액세스 기술의 종류와 상관없이 일관된 예외가 발생하도록 만들어준다.
+
+<b>DAO 인터페이스와 구현의 분리</b>   
+DAO 를 굳이 따로 만들어서 사용하는 이유
+* 데이터 액세스 로직을 담은 코드를 성격이 다른 코드에서 분리
+* 전략 패턴을 적용해 구현 방법을 변경해서 사용할 수 있게 만들기 위해서 사용 : DAO를 사용하는 쪽에서는 DAO 내부에서 어떤 데이터 액세스 기술을 사용하는지
+신경 쓰지 않아도 된다. User에 같이 자바빈으로 만들어진(Interface + DI), 특정 기술(JDBC/JPA/Hibernate/iBatis 등)에 독립적인 단순한 오브젝트를
+주고받으면서 데이터 액세스 기능을 사용하기만 하면 된다.
+
+그런데 DAO 의 사용 기술과 구현 코드는 전랸 패턴과 DI를 통해서 DAO를 사용하는 클라이언트에게 감출 수 있지만, 메서드 선언에 나타나는 예외정보가 문제가 될 수 있다.
+각 데이터 액세스 기술마다 발생하는 예외가 다르기 때문이다.
+```java
+public void add(User user) throws SQLException;         /* JDBC */
+public void add(User user) throws PersistentException;  /* JPA */
+public void add(User user) throws HibernateException;   /* Hibernate */
+public void add(User user) throws JdoException;         /* JDO */
+```
+
+기술에 독립적인 인터페이스로 만들려먼 다음과 같이 정의해야 한다.
+```java
+public interface UserDao {
+    void add(User user);     /* throws [예외]가 없음 */
+}
+```
+
+가장 단순한 해결 방법은 모든 예외를 다 받아주는 throws Exception 으로 선언하는 것이지만 매우 무책임한 선언이다.
+```java
+public void add(User user) throws Exception;
+```
+
+다행이도 JDBC 보다 늦게 등장한 JDO, Hiberante, JPA 등의 기술은 SQLException 같은 체크 예외 대신 런타임 예외를 사용하기 때문에 throws 선언을 
+하지 않아도 된다. 남은 것은 SQLException 을 던지는 JDBC API를 직접사용하는 DAO이며, 이 경우 DAO 메서드 내에서 SQLException -> 런타임 예외로 포장하면
+처음 의도대로 다음과 같은 선언이 가능해진다. 
+```java
+public interface UserDao {
+    void add(User user);     /* throws [예외]가 없음 */
+}
+```
+
+애플리케이션에서는 사용하지 않더라도 시스템 레벨에서 데이터 액세스 예외를 의미 있게 분류할 필요도 있다.
+문제는 데이터 액세스 기술이 달라지면 같은 상황에서도 다른 종류의 예외가 던져진다는 점이다.
+(런타임 예외는 메서드 선언에 `throws 예외` 을 추가하지 않아도 throw 할 수 있다.) 
+중복 키 에러가 발생했을 때 
+
+JDBC -> SQLException, JPA -> PersistentException, Hibernate -> HibernateException, JDO -> JdoException 이 던져진다.
+
+따라서 DAO를 사용하는 클라이언트 입장에서는 DAO의 사용 기술에 따라서 예외 처리 방법이 달라져야 한다. 결국 클라이언트가 DAO의 기술에 의존적이 될 수밖에 없다.
+
+<b>데이터 액세스 예외 추상화와 DataAccessException 계층구조</b>
+```
+JDBC -> SQLException                ⏋                                       
+JPA -> PersistentException          |   
+Hibernate -> HibernateException     |--> Spring이 각 예외를 추상화해서 DataAccessException 의 계층구조에 맵핑   
+JDO -> JdoException                 ⏌   
+```
+
+DataAccessException 계층구조에는 템플릿 메서드나 DAO 메서드에서 직접 활용할 수 있는 예외도 정의되어 있다.
+JdbcTemplate 의 queryForObject() 메서드는 한 개의 로우만 돌려주는 쿼리에 사용하도록 되어 있다. 쿼리 실행 결과가 하나 이상의 로우를 가져오면,
+템플릿 메서드의 사용 방법에 문제가 있거나 SQL을 잘못 작성한 것이다. 이런 경우에 JDBC에서는 예외가 발생하지 않는다.
+
+하지만 JdbcTemplate에서 볼 때는 기대한 결과가 나오지 않은 예외상황이다. 이런 경우에 사용할 수 있도록 DataAccessException 계층구조에는 
+<b>IncorrectResultSizeDataAccessException</b>이 정의되어 있다. queryForObject() 메서드에서는 좀 더 자세한 정보를 담은 서브클래스인
+<b>EmptyResultDataAccessException</b>을 발생시킨다.
+
+### 4.2.4 기술에 독립적인 UserDao 만들기
+
+

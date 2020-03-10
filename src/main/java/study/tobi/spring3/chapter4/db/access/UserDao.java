@@ -48,7 +48,6 @@ public class UserDao {
 //        }
 //    }
 
-
     public int getCount() {
         return jdbcTemplate.queryForObject("select count(*) from users", Integer.class);
     }
